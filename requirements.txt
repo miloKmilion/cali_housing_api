@@ -1,0 +1,13 @@
+pandas
+numpy
+seaborn
+matplotlib
+scikit-learn
+pyarrow
+fastparquet
+ipykernel
+jupyter
+missingno 
+lightgbm
+xgboost
+catboost
