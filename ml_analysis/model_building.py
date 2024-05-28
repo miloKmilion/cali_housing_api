@@ -94,6 +94,22 @@ class LoadDataForML:
             print("No models selected for ensemble.")
             return None
     
+    def single_model_save(self, X_train, y_train, X_test, y_test, pickle_file):
+        model = CatBoostRegressor(verbose=0, random_state=self.random_state)
+        print(model)
+        # Fit the model
+        model.fit(X_train, y_train)
+        
+        # Evaluate the model
+        test_score = model.score(X_test, y_test)
+        print("Test score:", test_score)
+        
+        # Save the model to a pickle file
+        with open(self.folder_to_save_model + f'{pickle_file}.pkl', 'wb') as f:
+            pickle.dump(model, f)
+        
+        print("Model saved to", pickle_file)
+    
     @staticmethod
     def plotting_model_tester(results, names):
         # Plotting R-squared scores
