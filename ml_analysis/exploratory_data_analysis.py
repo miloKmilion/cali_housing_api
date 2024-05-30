@@ -7,7 +7,10 @@ from dataclasses import dataclass, field
 from typing import List
 
 from scipy.stats import skew
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler, OneHotEncoder, FunctionTransformer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
 
 @dataclass
 class ExploratoryDataAnalysis():
@@ -76,7 +79,6 @@ class ExploratoryDataAnalysis():
         skew_df
         
         skewed_columns = skew_df[skew_df['Abs_Skew'] > 0.5]['Feature'].values
-        skewed_columns
 
         # Apply log transformation to the skewed columns
         for column in skewed_columns:
@@ -88,19 +90,30 @@ class ExploratoryDataAnalysis():
     @staticmethod
     def encoder_and_scaler(X: pd.DataFrame, column_to_encode: str = None) -> pd.DataFrame:
         
+        numerical_features = X.select_dtypes(include=['int64', 'float64']).columns
+        categorical_features = X.select_dtypes(include=['object']).columns
+        
+        numerical_transformer = StandardScaler()
+        categorical_transformer = LabelEncoder()
+        
+        # Create preprocessing pipelines
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', numerical_transformer, numerical_features),
+                ('cat', categorical_transformer, categorical_features)
+            ]
+        )
+        
+        # Fit and transform the categorical columns
         if column_to_encode is not None:
-            encoder = LabelEncoder()
-            X[column_to_encode] = encoder.fit_transform(X[column_to_encode])
-            
-            scaler = StandardScaler()
-            scaler.fit(X)
-            X = pd.DataFrame(scaler.transform(X), index= X.index, columns= X.columns)
-        else:
-            scaler = StandardScaler()
-            scaler.fit(X)
-            X = pd.DataFrame(scaler.transform(X), index= X.index, columns= X.columns)
-            
-        return X
+            X[column_to_encode] = categorical_transformer.fit_transform(X[column_to_encode])
+        
+        # Create a full preprocessing pipeline
+        full_pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor)
+        ])
+        
+        return full_pipeline
             
             
     def saving_processed_data(self, X: pd.DataFrame, y: pd.Series, X_name: str, y_name:str) -> None:

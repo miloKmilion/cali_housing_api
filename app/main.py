@@ -5,7 +5,7 @@ from pydantic import BaseModel
 import pickle
 import pandas as pd
 import numpy as np
-from typing import Any, Dict
+from typing import List
 
 app = FastAPI()
 
@@ -18,26 +18,31 @@ class PredictionFeatures(BaseModel):
     population: float
     households: float
     median_income: float
-    ocean_proximity: int
-    bedroom_ratio: float
+    ocean_proximity: str
 
-
+    # Adding the dataframe completion:
+    def to_dataframe(self) -> pd.DataFrame:
+            data = self.dict()
+            # 1. Calculate the bedroom_ratio
+            data['bedroom_ratio'] = data['total_bedrooms'] / data['total_rooms']
+            
+            # 2. Create The DataFrame
+            df = pd.DataFrame([data])
+            
+            # 3. Map ocean_proximity to numerical values
+            df["ocean_proximity"] = df["ocean_proximity"].map({"1H OCEAN": 0, "INLAND": 1, "NEAR OCEAN": 2, "NEAR BAY": 3})
+            
+            return df
+    
+# Loading the single model. 
 with open('.\\models\\single_model.pkl', 'rb') as f:
     model = pickle.load(f)
 
 # Creating the decorators
 @app.post('/')
 # TODO: Fix the post request since the dictionary is not working. 
-async def scoring_endpoint(item: PredictionFeatures):
-    df = pd.DataFrame([item.dict().values()], item.dict().keys()).T
-    # df = pd.DataFrame([item.model_dump()])
-    # Ensure df is a DataFrame
-    
-    if not isinstance(df, pd.DataFrame):
-        df = pd.DataFrame(df)
-    print(df)
-    
+async def predict(features: PredictionFeatures):
+    df = features.to_dataframe()
     prediction = model.predict(df)
-
-    # Return the prediction
-    return {"prediction": prediction}
+    
+    return {"prediction": prediction.tolist()}

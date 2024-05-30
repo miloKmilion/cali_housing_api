@@ -5,7 +5,7 @@ import numpy as np
 from dataclasses import dataclass, field
 
 
-from sklearn.model_selection import train_test_split, KFold, cross_val_score
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
@@ -14,7 +14,11 @@ from catboost import CatBoostRegressor
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.pipeline import Pipeline
 import pickle
+from exploratory_data_analysis import ExploratoryDataAnalysis
+
 
 @dataclass
 class LoadDataForML:
@@ -95,8 +99,15 @@ class LoadDataForML:
             return None
     
     def single_model_save(self, X_train, y_train, X_test, y_test, pickle_file):
-        model = CatBoostRegressor(verbose=0, random_state=self.random_state)
-        print(model)
+        # Create preprocessing pipelines
+        full_pipeline = ExploratoryDataAnalysis.encoder_and_scaler(X_train)
+        
+        # Create a pipeline that includes preprocessing and the model
+        model = Pipeline(steps=[
+            ('preprocessor', full_pipeline),
+            ('regressor', CatBoostRegressor(verbose=0, random_state=self.random_state))
+        ])
+        
         # Fit the model
         model.fit(X_train, y_train)
         
